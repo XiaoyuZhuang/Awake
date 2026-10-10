@@ -6,7 +6,7 @@ on:
     branches: [ main ]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: apk-${{ github.ref }}
@@ -61,6 +61,16 @@ jobs:
           name: Awake-apk
           path: dist/*.apk
           if-no-files-found: error
+      - name: Publish signed APK to GitHub Releases
+        if: env.KEYSTORE_FILE != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="build-${GITHUB_RUN_NUMBER}"
+          gh release create "$tag" dist/Awake-release.apk \
+            --target "$GITHUB_SHA" \
+            --title "Awake 1.0.0 (build ${GITHUB_RUN_NUMBER})" \
+            --notes "Signed Android APK built by GitHub Actions. Download Awake-release.apk to install. Requires Android 8.0 or later."
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4
