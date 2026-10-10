@@ -8,8 +8,8 @@ import androidx.core.app.NotificationCompat
 object ReminderHelper {
     private const val ID = 1002
 
-    fun remind(context: Context) {
-        if (!AppSettings.notificationEnabled(context)) return
+    fun notifyReminder(context: Context) {
+        if (!AppSettings.notification(context)) return
 
         val builder = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
@@ -18,14 +18,14 @@ object ReminderHelper {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
 
-        if (AppSettings.soundEnabled(context)) {
+        if (AppSettings.sound(context)) {
             builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
         }
 
         context.getSystemService(NotificationManager::class.java)
             .notify(ID, builder.build())
 
-        if (AppSettings.vibrationEnabled(context)) {
+        if (AppSettings.vibration(context)) {
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
             vibrator.vibrate(300)
         }
