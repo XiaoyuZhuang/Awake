@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        ThemeManager.apply(this)
         super.onCreate(savedInstanceState)
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -35,6 +36,7 @@ class SettingsActivity : AppCompatActivity() {
         label("Theme / 主题")
         spinner(arrayOf("System","Light","Dark"), when(AppSettings.theme(this)) {"light"->1;"dark"->2;else->0}){
             AppSettings.setTheme(this, arrayOf("system","light","dark")[it])
+            ThemeManager.apply(this)
         }
 
         label("Other settings are preserved in AppSettings")
