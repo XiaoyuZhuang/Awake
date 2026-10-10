@@ -2,6 +2,7 @@
 import re
 import subprocess
 import time
+import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
@@ -49,6 +50,16 @@ def tap_text(text, exact=False):
                 return
     raise AssertionError("Visible UI option missing: " + text)
 
+def capture_failure(error_type, error, traceback):
+    screenshot("failure")
+    try:
+        (OUT / "failure.xml").write_text(shell("cat /sdcard/window.xml"))
+        (OUT / "failure-logcat.txt").write_text(shell("logcat -d -t 400"))
+    finally:
+        sys.__excepthook__(error_type, error, traceback)
+
+sys.excepthook = capture_failure
+
 size = list(map(int, re.findall(r"(\d+)x(\d+)", shell("wm size"))[-1]))
 width, height = size
 
@@ -68,12 +79,18 @@ wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(),
 wait_for(lambda: int(prefs().get("deadline", "0")) > int(time.time() * 1000),
          "Fresh desktop launch did not add time")
 screenshot("fresh-install-settings")
+time.sleep(4)  # Let the launch heads-up notification dismiss before tapping settings.
 
 # Use the actual settings UI. Do not replace preference XML or force-stop the app.
 tap_text("每次启动增加")
 time.sleep(0.3)
 shell("input keyevent 123 67 67")
 shell("input text 1")
+time.sleep(0.5)
+screenshot("editing-minutes")
+if "mInputShown=true" in shell("dumpsys input_method"):
+    shell("input keyevent BACK")
+    time.sleep(0.3)
 tap_text("保存", exact=True)
 wait_for(lambda: prefs("awake_settings").get("add_minutes") == "1", "Minutes were not saved")
 
