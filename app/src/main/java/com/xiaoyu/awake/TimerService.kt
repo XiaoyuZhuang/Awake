@@ -43,10 +43,12 @@ class TimerService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "ADD_TIME" -> {
-                val duration = remaining() + AppSettings.addMinutes(this).coerceIn(1, 1440) * 60_000L
+                val minutes = AppSettings.addMinutes(this).coerceIn(1, 1440)
+                val duration = remaining() + minutes * 60_000L
                 stopReminder()
                 deadline = System.currentTimeMillis() + duration
                 startCountdown()
+                NotificationHelper.timeAdded(this, format(remaining()), minutes)
             }
             "STOP_ALL", "STOP_REMINDER" -> {
                 timer?.cancel()

@@ -61,6 +61,23 @@ jobs:
           name: Awake-apk
           path: dist/*.apk
           if-no-files-found: error
+      - name: Enable emulator acceleration
+        run: sudo chmod 666 /dev/kvm
+      - name: Verify launcher and settings on Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          disable-animations: false
+          script: python3 scripts/ui_smoke_test.py
+      - name: Upload UI verification screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-smoke-screenshots
+          path: ui-smoke/*.png
+          if-no-files-found: ignore
       - name: Publish signed APK to GitHub Releases
         if: env.KEYSTORE_FILE != ''
         env:
@@ -72,7 +89,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Awake $version (build ${GITHUB_RUN_NUMBER})" \
             --latest \
-            --notes "Awake $version：修复状态栏重叠，纯黑夜间主题，自定义倒计时和提醒间隔，声音与震动开关，设置入口选择，更新检查及新图标。下载 Awake-release.apk 可覆盖安装之前的签名 Release 版本。"
+            --notes "Awake $version：无界面启动入口，增加时间临时提示，首次安装默认进入设置，菜单边框与统一淡入弹窗。下载 Awake-release.apk 可覆盖安装之前的签名 Release 版本。"
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4

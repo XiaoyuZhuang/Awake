@@ -17,7 +17,7 @@ object AppSettings {
     fun sound(c:Context)=p(c).getBoolean("sound",true)
     fun notification(c:Context)=p(c).getBoolean("notification",true)
 
-    fun settingsEntry(c: Context) = p(c).getString("settings_entry", "notification") ?: "notification"
+    fun settingsEntry(c: Context) = p(c).getString("settings_entry", "every_launch") ?: "every_launch"
     fun setSettingsEntry(c: Context, value: String) { p(c).edit().putString("settings_entry", value).apply() }
 
     fun startupMode(c:Context)=p(c).getString("launch_mode", MODE_ADD_TIME) ?: MODE_ADD_TIME
