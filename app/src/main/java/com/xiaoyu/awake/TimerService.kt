@@ -12,10 +12,13 @@ class TimerService : Service() {
     private var timer: CountDownTimer? = null
     private var reminderTimer: java.util.Timer? = null
 
+    private val pref by lazy { getSharedPreferences("awake_runtime", 0) }
+
     override fun onCreate() {
         super.onCreate()
         NotificationHelper.createChannel(this)
-        startForeground(NotificationHelper.ID, NotificationHelper.notification(this, "Ready"))
+        restoreTimer()
+        startForeground(NotificationHelper.ID, NotificationHelper.notification(this, format(remain)))
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -29,19 +32,45 @@ class TimerService : Service() {
     private fun addTime() {
         stopReminder()
         remain += AppSettings.addMinutes(this) * 60_000
+        saveTimer()
         timer?.cancel()
         timer = object : CountDownTimer(remain, 1000) {
             override fun onTick(ms: Long) {
                 remain = ms
+                saveTimer()
                 NotificationManagerCompat.from(this@TimerService)
                     .notify(NotificationHelper.ID, NotificationHelper.notification(this@TimerService, format(ms)))
             }
 
             override fun onFinish() {
                 remain = 0
+                saveTimer()
                 startReminderLoop()
             }
         }.start()
+    }
+
+    private fun restoreTimer() {
+        remain = pref.getLong("remain", 0)
+        if (remain > 0) {
+            timer = object : CountDownTimer(remain, 1000) {
+                override fun onTick(ms: Long) {
+                    remain = ms
+                    saveTimer()
+                    NotificationManagerCompat.from(this@TimerService)
+                        .notify(NotificationHelper.ID, NotificationHelper.notification(this@TimerService, format(ms)))
+                }
+                override fun onFinish() {
+                    remain = 0
+                    saveTimer()
+                    startReminderLoop()
+                }
+            }.start()
+        }
+    }
+
+    private fun saveTimer() {
+        pref.edit().putLong("remain", remain).apply()
     }
 
     private fun startReminderLoop() {
@@ -49,7 +78,7 @@ class TimerService : Service() {
         reminderTimer = fixedRateTimer(
             name = "awake-reminder",
             initialDelay = 0,
-            period = AppSettings.reminderSeconds(this) * 1000L
+            period = AppSettings.intervalSeconds(this) * 1000L
         ) {
             ReminderHelper.notifyReminder(this@TimerService)
         }
