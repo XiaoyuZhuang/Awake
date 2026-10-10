@@ -7,6 +7,14 @@ android {
     namespace = "com.xiaoyu.awake"
     compileSdk = 35
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
     signingConfigs {
         create("release") {
             val storeFilePath = System.getenv("KEYSTORE_FILE")
