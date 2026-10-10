@@ -28,7 +28,11 @@ def resumed():
                      if re.search(r"(?:mResumedActivity|topResumedActivity)\s*[:=]", line))
 
 def prefs(name="awake_runtime"):
-    xml = shell("run-as " + PACKAGE + " cat shared_prefs/" + name + ".xml")
+    result = subprocess.run(["adb", "shell", "run-as", PACKAGE, "cat", "shared_prefs/" + name + ".xml"],
+                            text=True, capture_output=True)
+    if result.returncode != 0:
+        return {}
+    xml = result.stdout
     return {node.attrib["name"]: node.attrib.get("value", node.text)
             for node in ET.fromstring(xml)}
 
@@ -41,13 +45,16 @@ def nodes():
     return list(ET.fromstring(shell("cat /sdcard/window.xml")).iter("node"))
 
 def tap_text(text, exact=False):
-    for node in nodes():
-        label = node.attrib.get("text", "")
-        if (label == text if exact else text in label):
-            bounds = list(map(int, re.findall(r"\d+", node.attrib["bounds"])))
-            if len(bounds) == 4 and bounds[2] > bounds[0] and bounds[3] > bounds[1]:
-                shell("input tap %d %d" % ((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2))
-                return
+    for attempt in range(5):
+        for node in nodes():
+            label = node.attrib.get("text", "")
+            if (label == text if exact else text in label):
+                bounds = list(map(int, re.findall(r"\d+", node.attrib["bounds"])))
+                if len(bounds) == 4 and bounds[2] > bounds[0] and bounds[3] > bounds[1]:
+                    shell("input tap %d %d" % ((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2))
+                    time.sleep(0.5)
+                    return
+        time.sleep(0.3)
     raise AssertionError("Visible UI option missing: " + text)
 
 def capture_failure(error_type, error, traceback):
