@@ -76,7 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ui-smoke-screenshots
-          path: ui-smoke/*.png
+          path: ui-smoke/*
           if-no-files-found: ignore
       - name: Publish signed APK to GitHub Releases
         if: env.KEYSTORE_FILE != ''
