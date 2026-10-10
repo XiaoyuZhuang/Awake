@@ -15,7 +15,7 @@ class SettingsActivity : AppCompatActivity() {
 
         title = "Awake Settings"
 
-        fun addLabel(text: String) {
+        fun label(text: String) {
             root.addView(TextView(this).apply {
                 this.text = text
                 textSize = 18f
@@ -23,55 +23,79 @@ class SettingsActivity : AppCompatActivity() {
             })
         }
 
-        fun addSwitch(text: String, checked: Boolean = true) {
+        fun edit(default: String, save: (Long) -> Unit): EditText {
+            return EditText(this).apply {
+                inputType = 2
+                setText(default)
+                setOnFocusChangeListener { _, hasFocus ->
+                    if (!hasFocus) {
+                        text.toString().toLongOrNull()?.let(save)
+                    }
+                }
+            }
+        }
+
+        label("Timer duration / 增加时间 (minutes)")
+        root.addView(edit(AppSettings.addMinutes(this).toString()) {
+            AppSettings.setAddMinutes(this, it)
+        })
+
+        label("Reminder interval / 提醒间隔 (seconds)")
+        root.addView(edit(AppSettings.intervalSeconds(this).toString()) {
+            AppSettings.setIntervalSeconds(this, it)
+        })
+
+        fun switch(text: String, value: Boolean, save: (Boolean) -> Unit) {
             root.addView(Switch(this).apply {
                 this.text = text
-                this.isChecked = checked
+                isChecked = value
+                setOnCheckedChangeListener { _, checked -> save(checked) }
             })
         }
 
-        addLabel("Timer duration / 增加时间 (minutes)")
-        root.addView(EditText(this).apply {
-            hint = "10"
-            inputType = 2
-        })
+        switch("Vibration / 震动", AppSettings.vibration(this)) {
+            AppSettings.setVibration(this, it)
+        }
+        switch("Sound / 声音", AppSettings.sound(this)) {
+            AppSettings.setSound(this, it)
+        }
+        switch("Notification / 通知", AppSettings.notification(this)) {
+            AppSettings.setNotification(this, it)
+        }
 
-        addLabel("Reminder interval / 提醒间隔 (seconds)")
-        root.addView(EditText(this).apply {
-            hint = "10"
-            inputType = 2
-        })
-
-        addSwitch("Vibration / 震动")
-        addSwitch("Sound / 声音")
-        addSwitch("Notification / 通知")
-
-        addLabel("Language / 语言")
+        label("Language / 语言")
         root.addView(Spinner(this).apply {
             adapter = ArrayAdapter(this@SettingsActivity,
                 android.R.layout.simple_spinner_dropdown_item,
                 arrayOf("简体中文", "English"))
+            setSelection(if (AppSettings.language(this@SettingsActivity)=="en") 1 else 0)
         })
 
-        addLabel("Theme / 主题")
+        label("Theme / 主题")
         root.addView(Spinner(this).apply {
             adapter = ArrayAdapter(this@SettingsActivity,
                 android.R.layout.simple_spinner_dropdown_item,
                 arrayOf("System", "Light", "Dark"))
         })
 
-        addLabel("Startup mode / 启动方式")
+        label("Startup mode / 启动方式")
         root.addView(Spinner(this).apply {
             adapter = ArrayAdapter(this@SettingsActivity,
                 android.R.layout.simple_spinner_dropdown_item,
                 arrayOf("Add time on launch", "Enter through notification"))
+            setSelection(if (AppSettings.launchMode(this@SettingsActivity)=="NOTIFICATION_ONLY") 1 else 0)
+            onItemSelectedListener = object: android.widget.AdapterView.OnItemSelectedListener {
+                override fun onNothingSelected(parent: android.widget.AdapterView<*>?) {}
+                override fun onItemSelected(parent: android.widget.AdapterView<*>?, view: android.view.View?, pos: Int, id: Long) {
+                    AppSettings.setLaunchMode(this@SettingsActivity,
+                        if(pos==1) "NOTIFICATION_ONLY" else "ADD_TIME")
+                }
+            }
         })
 
         root.addView(Button(this).apply {
             text = "Check update / 检查更新"
-            setOnClickListener {
-                UpdateChecker.openReleasePage(this@SettingsActivity)
-            }
+            setOnClickListener { UpdateChecker.openReleasePage(this@SettingsActivity) }
         })
 
         setContentView(root)
