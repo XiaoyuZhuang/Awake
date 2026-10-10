@@ -1,5 +1,9 @@
 package com.xiaoyu.awake
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import android.app.NotificationManager
 import android.content.Context
 import android.media.RingtoneManager
@@ -10,6 +14,9 @@ object ReminderHelper {
 
     fun notifyReminder(context: Context) {
         if (!AppSettings.notification(context)) return
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED) return
 
         val builder = NotificationCompat.Builder(context, NotificationHelper.CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_popup_reminder)
