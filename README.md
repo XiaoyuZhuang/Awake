@@ -1,10 +1,68 @@
 # Awake
 
-轻醒 Android app.
+<div align="center">
 
-Features:
-- Tap icon to add configurable countdown time
-- Background foreground service timer
-- Persistent notification
-- Reminder interval after timeout
-- Settings for language/theme/vibration/sound/notification/update
+一个轻量级 Android 倒计时提醒工具。
+
+[English README](README_EN.md)
+
+</div>
+
+## 简介
+
+Awake 是一个无界面的后台倒计时提醒应用。
+
+打开应用即可增加时间，不需要进入主界面；所有状态通过通知展示，需要修改参数时通过通知进入设置页面。
+
+## 核心功能
+
+### 快速增加倒计时
+
+- 点击应用图标即可增加倒计时。
+- 默认增加 10 分钟。
+- 增加时间可以在设置中修改。
+
+### 智能提醒
+
+- 常驻通知显示剩余时间。
+- 倒计时结束后按照设置间隔循环提醒。
+- 默认提醒间隔为 10 秒。
+
+### 极简交互
+
+- 无普通首页界面。
+- 支持通过通知进入设置。
+- 可配置应用启动行为。
+
+### 个性化设置
+
+支持：
+
+- 中文 / English
+- 白天模式 / 夜间模式
+- 震动
+- 声音
+- 通知
+- 默认增加时间
+- 提醒间隔
+- 启动方式
+
+### 更新检查
+
+检查 GitHub Release 最新版本。
+
+发现新版本后打开浏览器，由用户自行下载更新。
+
+## 使用方式
+
+1. 点击 Awake 图标增加时间。
+2. 查看通知获取剩余时间。
+3. 通过通知进入设置页面。
+
+## 隐私
+
+Awake 不需要账号，不收集个人信息，数据保存在本地设备。
+
+## 开源
+
+源码公开于 GitHub。
