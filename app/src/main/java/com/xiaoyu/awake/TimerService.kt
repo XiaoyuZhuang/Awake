@@ -1,5 +1,9 @@
 package com.xiaoyu.awake
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import android.app.Service
 import android.content.Intent
 import android.os.CountDownTimer
@@ -38,8 +42,7 @@ class TimerService : Service() {
             override fun onTick(ms: Long) {
                 remain = ms
                 saveTimer()
-                NotificationManagerCompat.from(this@TimerService)
-                    .notify(NotificationHelper.ID, NotificationHelper.notification(this@TimerService, format(ms)))
+                updateNotification(ms)
             }
 
             override fun onFinish() {
@@ -57,8 +60,7 @@ class TimerService : Service() {
                 override fun onTick(ms: Long) {
                     remain = ms
                     saveTimer()
-                    NotificationManagerCompat.from(this@TimerService)
-                        .notify(NotificationHelper.ID, NotificationHelper.notification(this@TimerService, format(ms)))
+                    updateNotification(ms)
                 }
                 override fun onFinish() {
                     remain = 0
@@ -66,6 +68,15 @@ class TimerService : Service() {
                     startReminderLoop()
                 }
             }.start()
+        }
+    }
+
+    private fun updateNotification(ms: Long) {
+        if (Build.VERSION.SDK_INT < 33 || ContextCompat.checkSelfPermission(
+                this, Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED) {
+            NotificationManagerCompat.from(this)
+                .notify(NotificationHelper.ID, NotificationHelper.notification(this, format(ms)))
         }
     }
 
