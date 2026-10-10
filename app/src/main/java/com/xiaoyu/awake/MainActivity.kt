@@ -7,6 +7,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 class MainActivity : AppCompatActivity() {
     override fun attachBaseContext(newBase: android.content.Context) {
@@ -27,9 +28,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         if (AppSettings.startupMode(this) == AppSettings.MODE_ADD_TIME) {
-            startService(Intent(this, TimerService::class.java).apply {
-                action = "ADD_TIME"
-            })
+            ContextCompat.startForegroundService(
+                this,
+                Intent(this, TimerService::class.java).apply {
+                    action = "ADD_TIME"
+                }
+            )
         }
 
         finish()
