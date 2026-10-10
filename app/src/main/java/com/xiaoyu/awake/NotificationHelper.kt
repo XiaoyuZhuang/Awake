@@ -26,12 +26,19 @@ object NotificationHelper {
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("Awake")
             .setContentText(remaining)
+            .addAction(0, if (AppSettings.language(context) == "en") "Add time" else "增加时间", serviceIntent(context, "ADD_TIME", 1))
+            .addAction(0, if (AppSettings.language(context) == "en") "Stop" else "停止", serviceIntent(context, "STOP_ALL", 2))
             .setContentIntent(settingsIntent(context))
             .setOngoing(true)
             .setOnlyAlertOnce(true)
             .build()
 
-    private fun settingsIntent(context: Context): PendingIntent {
+    private fun serviceIntent(context: Context, action: String, code: Int): PendingIntent =
+        PendingIntent.getService(context, code,
+            Intent(context, TimerService::class.java).apply { this.action = action },
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+
+    fun settingsIntent(context: Context): PendingIntent {
         val intent = Intent(context, SettingsActivity::class.java)
         return PendingIntent.getActivity(
             context,

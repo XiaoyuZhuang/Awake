@@ -67,10 +67,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           tag="build-${GITHUB_RUN_NUMBER}"
-          gh release create "$tag" dist/Awake-release.apk \
+          version=$(jq -r .versionName version.json)
+          gh release create "$tag" dist/Awake-release.apk version.json \
             --target "$GITHUB_SHA" \
-            --title "Awake 1.0.0 (build ${GITHUB_RUN_NUMBER})" \
-            --notes "Signed Android APK built by GitHub Actions. Download Awake-release.apk to install. Requires Android 8.0 or later."
+            --title "Awake $version (build ${GITHUB_RUN_NUMBER})" \
+            --latest \
+            --notes "Awake $version：修复状态栏重叠，纯黑夜间主题，自定义倒计时和提醒间隔，声音与震动开关，设置入口选择，更新检查及新图标。下载 Awake-release.apk 可覆盖安装之前的签名 Release 版本。"
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4
