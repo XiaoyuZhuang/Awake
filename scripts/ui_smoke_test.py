@@ -41,11 +41,14 @@ def screenshot(name):
         subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=output, check=True)
 
 def nodes():
-    shell("uiautomator dump /sdcard/window.xml")
-    return list(ET.fromstring(shell("cat /sdcard/window.xml")).iter("node"))
+    try:
+        shell("uiautomator dump /sdcard/window.xml")
+        return list(ET.fromstring(shell("cat /sdcard/window.xml")).iter("node"))
+    except (subprocess.CalledProcessError, ET.ParseError):
+        return []
 
 def tap_text(text, exact=False):
-    for attempt in range(5):
+    for attempt in range(12):
         for node in nodes():
             label = node.attrib.get("text", "")
             if (label == text if exact else text in label):
@@ -72,7 +75,7 @@ width, height = size
 
 def home_launch():
     shell("input keyevent HOME")
-    time.sleep(0.8)
+    time.sleep(2)
     # Open the actual launcher app drawer, then tap Awake rather than using am start.
     shell("input swipe %d %d %d %d 300" % (width // 2, height * 9 // 10, width // 2, height * 3 // 10))
     time.sleep(0.7)
@@ -80,6 +83,7 @@ def home_launch():
 
 adb("install", "-r", "dist/Awake-debug.apk")
 shell("pm grant " + PACKAGE + " android.permission.POST_NOTIFICATIONS")
+time.sleep(5)  # Package install can finish before the cold-boot launcher is ready.
 home_launch()
 wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(),
          "Fresh desktop launch must open settings")
