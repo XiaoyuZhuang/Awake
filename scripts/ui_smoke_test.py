@@ -1,10 +1,9 @@
-"""Exercise launcher modes and capture settings/dialog on an ephemeral emulator."""
+"""Regression: launch through the desktop/app drawer with Settings already alive."""
 import re
 import subprocess
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
-from shlex import quote
 
 PACKAGE = "com.xiaoyu.awake"
 OUT = Path("ui-smoke")
@@ -27,66 +26,103 @@ def resumed():
     return "\n".join(line for line in shell("dumpsys activity activities").splitlines()
                      if re.search(r"(?:mResumedActivity|topResumedActivity)\s*[:=]", line))
 
-def prefs():
-    xml = shell("run-as " + PACKAGE + " cat shared_prefs/awake_runtime.xml")
+def prefs(name="awake_runtime"):
+    xml = shell("run-as " + PACKAGE + " cat shared_prefs/" + name + ".xml")
     return {node.attrib["name"]: node.attrib.get("value", node.text)
             for node in ET.fromstring(xml)}
 
 def screenshot(name):
-    path = OUT / (name + ".png")
-    with path.open("wb") as output:
+    with (OUT / (name + ".png")).open("wb") as output:
         subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=output, check=True)
+
+def nodes():
+    shell("uiautomator dump /sdcard/window.xml")
+    return list(ET.fromstring(shell("cat /sdcard/window.xml")).iter("node"))
+
+def tap_text(text, exact=False):
+    for node in nodes():
+        label = node.attrib.get("text", "")
+        if (label == text if exact else text in label):
+            bounds = list(map(int, re.findall(r"\d+", node.attrib["bounds"])))
+            if len(bounds) == 4 and bounds[2] > bounds[0] and bounds[3] > bounds[1]:
+                shell("input tap %d %d" % ((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2))
+                return
+    raise AssertionError("Visible UI option missing: " + text)
+
+size = list(map(int, re.findall(r"(\d+)x(\d+)", shell("wm size"))[-1]))
+width, height = size
+
+def home_launch():
+    shell("input keyevent HOME")
+    time.sleep(0.8)
+    # Open the actual launcher app drawer, then tap Awake rather than using am start.
+    shell("input swipe %d %d %d %d 300" % (width // 2, height * 9 // 10, width // 2, height * 3 // 10))
+    time.sleep(0.7)
+    tap_text("Awake", exact=True)
 
 adb("install", "-r", "dist/Awake-debug.apk")
 shell("pm grant " + PACKAGE + " android.permission.POST_NOTIFICATIONS")
-shell("input keyevent HOME")
-shell("am start -W -n " + PACKAGE + "/.MainActivity")
+home_launch()
 wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(),
-         "Fresh installation must open settings")
+         "Fresh desktop launch must open settings")
 wait_for(lambda: int(prefs().get("deadline", "0")) > int(time.time() * 1000),
-         "Default launch did not add time")
-
-# Capture the initial default settings and assert the selected entry is persisted
-# separately from the unset fresh-install default.
+         "Fresh desktop launch did not add time")
 screenshot("fresh-install-settings")
-shell("am force-stop " + PACKAGE)
-xml = '<map><string name="settings_entry">notification</string><long name="add_minutes" value="1"/><string name="theme">dark</string></map>'
-shell("run-as " + PACKAGE + " sh -c " + quote("printf %s " + quote(xml) + " > shared_prefs/awake_settings.xml"))
-shell("input keyevent HOME")
-shell("am start -W -n " + PACKAGE + "/.MainActivity")
-wait_for(lambda: int(prefs().get("deadline", "0")) > int(time.time() * 1000),
-         "Notification-only launch did not add time")
-time.sleep(1)
-assert PACKAGE not in resumed(), "Notification-only launcher left a visible app activity"
+
+# Use the actual settings UI. Do not replace preference XML or force-stop the app.
+tap_text("每次启动增加")
+time.sleep(0.3)
+shell("input keyevent 123 67 67")
+shell("input text 1")
+tap_text("保存", exact=True)
+wait_for(lambda: prefs("awake_settings").get("add_minutes") == "1", "Minutes were not saved")
+
+shell("input swipe %d %d %d %d 350" % (width // 2, height * 8 // 10, width // 2, height * 3 // 10))
+time.sleep(0.5)
+tap_text("进入方式")
+time.sleep(0.3)
+tap_text("仅通过通知进入", exact=True)
+wait_for(lambda: prefs("awake_settings").get("settings_entry") == "notification",
+         "Entry selection was not saved by UI")
+
+# Leave SettingsActivity alive in its task. Real desktop clicks must NOT restore it.
 first_deadline = int(prefs()["deadline"])
-shell("am start -W -n " + PACKAGE + "/.MainActivity")
-wait_for(lambda: int(prefs()["deadline"]) - first_deadline >= 59000,
-         "Second launcher tap did not add exactly one configured increment")
-assert PACKAGE not in resumed(), "Repeated launcher tap opened the app"
+for click in range(3):
+    home_launch()
+    wait_for(lambda: int(prefs()["deadline"]) - first_deadline >= (click + 1) * 59000,
+             "Desktop launch did not add the configured increment")
+    time.sleep(0.5)
+    assert PACKAGE not in resumed(), "Desktop icon restored settings or left a visible app activity"
+delta = int(prefs()["deadline"]) - first_deadline
+assert 177000 <= delta <= 183000, "Desktop taps did not add exactly three increments"
 notifications = shell("dumpsys notification --noredact")
 assert "awake_added_time" in notifications, "Temporary added-time notification missing"
-assert "awake_timer" in notifications, "Ongoing countdown notification missing"
+assert "awake_timer" in notifications, "Ongoing timer notification missing"
 screenshot("notification-only-home")
 
-# Open SettingsActivity from the same direct activity PendingIntent used by
-# NotificationHelper; a test harness cannot shell-start a nonexported activity.
-shell("am force-stop " + PACKAGE)
-xml = '<map><string name="settings_entry">every_launch</string><long name="add_minutes" value="1"/><string name="theme">dark</string></map>'
-shell("run-as " + PACKAGE + " sh -c " + quote("printf %s " + quote(xml) + " > shared_prefs/awake_settings.xml"))
-shell("am start -W -n " + PACKAGE + "/.MainActivity")
-wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(), "Settings entry selection was not honored")
-time.sleep(1)
-screenshot("black-settings")
-shell("uiautomator dump /sdcard/settings.xml")
-tree = ET.fromstring(shell("cat /sdcard/settings.xml"))
-controls = [node for node in tree.iter("node") if "每次启动增加" in node.attrib.get("text", "")]
-assert controls, "Custom time setting is missing"
-bounds = list(map(int, re.findall(r"\d+", controls[0].attrib["bounds"])))
-assert bounds[1] > 0, "Setting overlaps the top system bar"
-shell("input tap %d %d" % ((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2))
-time.sleep(1)
-screenshot("time-dialog")
-shell("uiautomator dump /sdcard/dialog.xml")
-dialog = shell("cat /sdcard/dialog.xml")
-assert "保存" in dialog and "取消" in dialog, "Time dialog is missing its actions"
-print("PASS: fresh-install settings, headless repeated launch, timer increments, both notifications and dialog.")
+# Reopen the still-existing Settings task and confirm its stored selection.
+shell("am start -W --activity-reorder-to-front -n " + PACKAGE + "/.MainActivity")
+# The isolated launcher above must also remain headless; it adds one more increment.
+time.sleep(0.5)
+assert PACKAGE not in resumed(), "Direct launcher intent did not stay headless"
+# A user enters Settings via the actual ongoing notification.
+shell("cmd statusbar expand-notifications")
+time.sleep(0.7)
+tap_text("Awake", exact=True)
+wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(), "Notification did not open settings")
+screenshot("settings-from-notification")
+
+# Settings entry is below the fold on smaller emulator screens.
+try:
+    tap_text("进入方式")
+except AssertionError:
+    shell("input swipe %d %d %d %d 350" % (width // 2, height * 8 // 10, width // 2, height * 3 // 10))
+    time.sleep(0.4)
+    tap_text("进入方式")
+time.sleep(0.3)
+tap_text("每次启动后进入设置", exact=True)
+wait_for(lambda: prefs("awake_settings")["settings_entry"] == "every_launch", "Every-launch selection not saved")
+home_launch()
+wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(), "Every-launch desktop mode did not open settings")
+screenshot("every-launch-settings")
+print("PASS: actual desktop icon, UI-saved entry preference, live Settings task, three exact increments, both notifications and every-launch mode.")

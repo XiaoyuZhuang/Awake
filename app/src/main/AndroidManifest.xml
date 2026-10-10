@@ -7,8 +7,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application android:theme="@style/AppTheme" android:label="Awake" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher">
-        <activity android:name=".SettingsActivity" android:exported="false" />
-        <activity android:name=".MainActivity" android:exported="true" android:theme="@android:style/Theme.NoDisplay" android:excludeFromRecents="true" android:noHistory="true">
+        <activity android:name=".SettingsActivity" android:exported="false" android:taskAffinity="com.xiaoyu.awake.settings" />
+        <activity android:name=".MainActivity" android:exported="true" android:theme="@style/LaunchTheme" android:taskAffinity="com.xiaoyu.awake.launcher" android:launchMode="singleInstance" android:excludeFromRecents="true" android:noHistory="true" android:finishOnTaskLaunch="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
