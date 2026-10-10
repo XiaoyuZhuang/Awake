@@ -2,6 +2,7 @@ package com.xiaoyu.awake
 
 import android.app.NotificationManager
 import android.content.Context
+import android.media.RingtoneManager
 import androidx.core.app.NotificationCompat
 
 object ReminderHelper {
@@ -17,10 +18,14 @@ object ReminderHelper {
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
 
+        if (AppSettings.soundEnabled(context)) {
+            builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+        }
+
         context.getSystemService(NotificationManager::class.java)
             .notify(ID, builder.build())
 
-        if (AppSettings.vibrateEnabled(context)) {
+        if (AppSettings.vibrationEnabled(context)) {
             val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as android.os.Vibrator
             vibrator.vibrate(300)
         }
