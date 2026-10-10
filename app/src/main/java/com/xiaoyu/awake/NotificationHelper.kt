@@ -2,7 +2,9 @@ package com.xiaoyu.awake
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
 
@@ -24,6 +26,18 @@ object NotificationHelper {
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle("Awake")
             .setContentText(remaining)
+            .setContentIntent(settingsIntent(context))
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
+
+    private fun settingsIntent(context: Context): PendingIntent {
+        val intent = Intent(context, SettingsActivity::class.java)
+        return PendingIntent.getActivity(
+            context,
+            0,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+    }
 }
