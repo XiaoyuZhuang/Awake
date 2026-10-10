@@ -13,7 +13,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name=".TimerService" android:foregroundServiceType="specialUse" android:exported="false" />
+        <service android:name=".TimerService" android:foregroundServiceType="specialUse" android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="countdown timer notification service" />
+        </service>
         <receiver android:name=".BootReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
