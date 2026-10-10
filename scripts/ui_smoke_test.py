@@ -123,6 +123,7 @@ notifications = shell("dumpsys notification --noredact")
 assert "awake_added_time" in notifications, "Temporary added-time notification missing"
 assert "awake_timer" in notifications, "Ongoing timer notification missing"
 screenshot("notification-only-home")
+print("PASS: UI-saved notification-only mode, live Settings task, actual desktop icon and exactly three increments", flush=True)
 
 # Reopen the still-existing Settings task and confirm its stored selection.
 shell("am start -W --activity-reorder-to-front -n " + PACKAGE + "/.MainActivity")
@@ -132,7 +133,15 @@ assert PACKAGE not in resumed(), "Direct launcher intent did not stay headless"
 # A user enters Settings via the actual ongoing notification.
 shell("cmd statusbar expand-notifications")
 time.sleep(0.7)
-tap_text("Awake", exact=True)
+# Tap the countdown body, not the app-name header which expands the notification.
+clicked = False
+for node in nodes():
+    if node.attrib.get("resource-id") == "android:id/text" and re.fullmatch(r"[0-9]+:[0-9]{2}", node.attrib.get("text", "")):
+        bounds = list(map(int, re.findall(r"\d+", node.attrib["bounds"])))
+        shell("input tap %d %d" % ((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2))
+        clicked = True
+        break
+assert clicked, "Countdown notification body missing"
 wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(), "Notification did not open settings")
 screenshot("settings-from-notification")
 
