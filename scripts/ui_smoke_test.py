@@ -53,7 +53,8 @@ def nodes():
         shell("am instrument -w com.xiaoyu.awake.uitest/.SnapshotInstrumentation")
         xml = shell("run-as com.xiaoyu.awake.uitest cat cache/window.xml")
         (OUT / "latest-window.xml").write_text(xml)
-        return list(ET.fromstring(xml).iter("node"))
+        return [node for node in ET.fromstring(xml).iter("node")
+                if node.attrib.get("visible") != "false"]
     except (subprocess.CalledProcessError, ET.ParseError):
         return []
 
