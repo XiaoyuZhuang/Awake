@@ -97,6 +97,10 @@ class SettingsActivity : AppCompatActivity() {
             })
         }
         fun style(view: View) {
+            // Flat controls: platform elevation shadows must not be clipped by compact rows.
+            view.stateListAnimator = null
+            view.elevation = 0f
+            view.translationZ = 0f
             view.backgroundTintList = null
             view.setBackgroundResource(R.drawable.settings_control)
             view.setPadding(dp(12), dp(6), dp(12), dp(6))
@@ -107,11 +111,14 @@ class SettingsActivity : AppCompatActivity() {
             root.addView(LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
+                // Vertical spacing belongs to the row. Child bottom margins combined with
+                // CENTER_VERTICAL can place the child above y=0 and clip its top border.
+                layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = dp(6) }
                 addView(left, LinearLayout.LayoutParams(0, -2, 1f).apply {
-                    rightMargin = dp(4); bottomMargin = dp(6)
+                    rightMargin = dp(4)
                 })
                 addView(right, LinearLayout.LayoutParams(0, -2, 1f).apply {
-                    leftMargin = dp(4); bottomMargin = dp(6)
+                    leftMargin = dp(4)
                 })
             })
         }

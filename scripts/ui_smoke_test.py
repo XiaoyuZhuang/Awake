@@ -273,3 +273,17 @@ wait_for(lambda: int(prefs()["deadline"]) - no_google_deadline >= 59000, "Adding
 assert "awake_timer" in shell("dumpsys notification --noredact"), "Local ongoing notification failed without Google services"
 screenshot("settings-without-google-services")
 print("PASS: Google Play services disabled, local add-time service and ongoing notification work.", flush=True)
+
+# Capture compact row outlines in black mode, also with enlarged system text.
+shell("cmd uimode night yes")
+time.sleep(1)
+find_visible(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/add_time")
+screenshot("black-row-outlines-top")
+shell("input swipe %d %d %d %d 350" % (width // 2, height * 8 // 10, width // 2, height * 3 // 10))
+time.sleep(0.5)
+screenshot("black-row-outlines-bottom")
+shell("settings put system font_scale 1.15")
+time.sleep(1)
+find_visible(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/add_time")
+screenshot("black-row-outlines-large-text")
+print("PASS: black-theme row outline screenshots captured, including enlarged system text.", flush=True)

@@ -89,7 +89,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Awake $version (build ${GITHUB_RUN_NUMBER})" \
             --latest \
-            --notes "Awake $version：设置页顶部显示实时倒计时，并排加时与停止操作、震动与声音、语言与主题，缩减界面间距，增加后台运行设置入口。本地前台服务与通知不依赖谷歌服务。下载 Awake-release.apk 可覆盖安装之前的签名 Release 版本。"
+            --notes "Awake $version：修复并排控件的顶部边框被裁切：将底部间距移到整行，并去掉系统按钮阴影，保持紧凑布局。下载 Awake-release.apk 可覆盖安装之前的签名 Release 版本。"
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4
