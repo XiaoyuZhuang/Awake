@@ -261,7 +261,10 @@ print("PASS: UI-created pinned shortcut, three actual desktop taps, headless eve
 for package in ("com.google.android.gms", "com.android.vending"):
     if ("package:" + package) in shell("pm list packages " + package).splitlines():
         shell("pm disable-user --user 0 " + package)
-home_launch()
+# Google bundled apps post their own enable-Play-services heads-up alerts.
+# Launch Awake explicitly here to isolate app compatibility from Pixel Launcher dependencies.
+shell("settings put global heads_up_notifications_enabled 0")
+shell("am start -W -n " + PACKAGE + "/.MainActivity")
 wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(), "Settings failed without Google services")
 find_visible(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/add_time")
 no_google_deadline = int(prefs()["deadline"])
