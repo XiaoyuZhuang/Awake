@@ -9,8 +9,6 @@ import android.media.RingtoneManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.os.VibrationEffect
-import android.os.Vibrator
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 
@@ -43,17 +41,14 @@ object ReminderHelper {
             val playing = ringtone
             handler.postDelayed({ playing?.stop() }, 1500)
         }
-        if (AppSettings.vibration(context)) {
-            val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            vibrator.vibrate(VibrationEffect.createOneShot(300, VibrationEffect.DEFAULT_AMPLITUDE))
-        }
+        VibrationFeedback.reminder(context)
     }
 
     fun stop(context: Context) {
         handler.removeCallbacksAndMessages(null)
         ringtone?.stop()
         ringtone = null
-        (context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator).cancel()
+        VibrationFeedback.cancel(context)
         context.getSystemService(NotificationManager::class.java).cancel(ID)
     }
 }

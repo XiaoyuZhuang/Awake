@@ -89,7 +89,7 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "Awake $version (build ${GITHUB_RUN_NUMBER})" \
             --latest \
-            --notes "Awake $version：参考 TapCount 隔离桌面启动与设置任务，修复桌面点击恢复设置而不加时的问题，补测真实 launcher 启动与入口选择保存。下载 Awake-release.apk 可覆盖安装之前的签名 Release 版本。"
+            --notes "Awake $version：修复加时与后台提醒震动，移除加时临时通知，保留底部提示及常驻倒计时通知，增加无界面的桌面加时快捷方式。下载 Awake-release.apk 可覆盖安装之前的签名 Release 版本。"
       - name: Upload lint report
         if: always()
         uses: actions/upload-artifact@v4

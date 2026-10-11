@@ -159,6 +159,16 @@ class SettingsActivity : AppCompatActivity() {
             if (AppSettings.settingsEntry(this) == "every_launch") 1 else 0) {
             AppSettings.setSettingsEntry(this, if (it == 1) "every_launch" else "notification")
         }
+        button(tr("添加桌面加时快捷方式", "Add home screen shortcut")) {
+            if (!Shortcuts.pin(this)) {
+                Toast.makeText(this, tr("当前桌面不支持添加快捷方式", "Your launcher does not support pinned shortcuts"),
+                    Toast.LENGTH_LONG).show()
+            }
+        }
+        root.addView(TextView(this).apply {
+            text = tr("桌面“Awake 加时”快捷方式只增加时间，不打开设置；保留底部提示和常驻通知。",
+                "The Awake +1 shortcut adds time without opening settings. The bottom message and ongoing notification remain.")
+        })
         label(tr("外观", "Appearance"))
         choice(tr("语言", "Language"), arrayOf("简体中文", "English"), if (english) 1 else 0) {
             AppSettings.setLanguage(this, if (it == 1) "en" else "zh")

@@ -90,7 +90,7 @@ wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(),
 wait_for(lambda: int(prefs().get("deadline", "0")) > int(time.time() * 1000),
          "Fresh desktop launch did not add time")
 screenshot("fresh-install-settings")
-time.sleep(4)  # Let the launch heads-up notification dismiss before tapping settings.
+time.sleep(1)
 
 # Use the actual settings UI. Do not replace preference XML or force-stop the app.
 tap_text("每次启动增加")
@@ -124,7 +124,7 @@ for click in range(3):
 delta = int(prefs()["deadline"]) - first_deadline
 assert 177000 <= delta <= 183000, "Desktop taps did not add exactly three increments"
 notifications = shell("dumpsys notification --noredact")
-assert "awake_added_time" in notifications, "Temporary added-time notification missing"
+assert "awake_added_time" not in notifications, "Obsolete temporary notification/channel still exists"
 assert "awake_timer" in notifications, "Ongoing timer notification missing"
 screenshot("notification-only-home")
 print("PASS: UI-saved notification-only mode, live Settings task, actual desktop icon and exactly three increments", flush=True)
@@ -162,4 +162,36 @@ wait_for(lambda: prefs("awake_settings")["settings_entry"] == "every_launch", "E
 home_launch()
 wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(), "Every-launch desktop mode did not open settings")
 screenshot("every-launch-settings")
-print("PASS: actual desktop icon, UI-saved entry preference, live Settings task, three exact increments, both notifications and every-launch mode.")
+print("PASS: actual desktop icon, UI-saved entry preference, live Settings task, three exact increments, ongoing notification only and every-launch mode.")
+
+
+# Create the pinned shortcut through Settings, then tap its real desktop icon.
+for _ in range(5):
+    if any("添加桌面加时快捷方式" in n.attrib.get("text", "") for n in nodes()):
+        break
+    shell("input swipe %d %d %d %d 350" % (width // 2, height * 8 // 10, width // 2, height * 3 // 10))
+    time.sleep(0.4)
+tap_text("添加桌面加时快捷方式", exact=True)
+time.sleep(0.7)
+screenshot("pin-shortcut-confirmation")
+tap_text("Add to home screen", exact=True)
+time.sleep(1)
+shell("input keyevent HOME")
+time.sleep(1)
+screenshot("pinned-shortcut")
+shortcut_deadline = int(prefs()["deadline"])
+# Restore animations to exercise the no-display entry even with normal launcher settings.
+for animation in ("window_animation_scale", "transition_animation_scale", "animator_duration_scale"):
+    shell("settings put global " + animation + " 1")
+for click in range(3):
+    shell("input keyevent HOME")
+    time.sleep(0.7)
+    tap_text("Awake 加时", exact=True)
+    wait_for(lambda: int(prefs()["deadline"]) - shortcut_deadline >= (click + 1) * 59000,
+             "Pinned shortcut did not add time")
+    assert PACKAGE not in resumed(), "Shortcut opened settings or left an app window"
+delta = int(prefs()["deadline"]) - shortcut_deadline
+assert 177000 <= delta <= 183000, "Shortcut did not add exactly three increments"
+assert prefs("awake_settings")["settings_entry"] == "every_launch"
+screenshot("shortcut-headless-with-animations")
+print("PASS: UI-created pinned shortcut, three actual desktop taps, headless even in every-launch mode with animations enabled.", flush=True)

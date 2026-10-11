@@ -48,6 +48,7 @@ class TimerService : Service() {
                 stopReminder()
                 deadline = System.currentTimeMillis() + duration
                 startCountdown()
+                VibrationFeedback.timeAdded(this)
                 NotificationHelper.timeAdded(this, format(remaining()), minutes)
             }
             "STOP_ALL", "STOP_REMINDER" -> {
