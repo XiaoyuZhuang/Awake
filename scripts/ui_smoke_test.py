@@ -287,3 +287,56 @@ time.sleep(1)
 find_visible(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/add_time")
 screenshot("black-row-outlines-large-text")
 print("PASS: black-theme row outline screenshots captured, including enlarged system text.", flush=True)
+
+# Real one-minute countdown: verify recurring time-up notifications, not add-time banners.
+shell("settings put global heads_up_notifications_enabled 1")
+shell("cmd notification set_dnd off")
+find_visible(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/add_time")
+tap_text("停止倒计时", exact=True)
+wait_for(lambda: prefs().get("active") == "false", "Could not reset timer for expiry test")
+tap_text("立即增加", exact=True)
+wait_for(lambda: prefs().get("active") == "true", "Could not start one-minute countdown")
+shell("input keyevent HOME")
+time.sleep(1)
+screenshot("add-time-no-banner")
+dump = shell("dumpsys notification --noredact")
+assert not re.search(r"NotificationRecord[^\n]*pkg=" + re.escape(PACKAGE) + r"[^\n]*id=100[23]\b", dump), "Add-time operation posted an unwanted transient notification"
+for _ in range(90):
+    if prefs().get("reminding") == "true":
+        break
+    time.sleep(1)
+assert prefs().get("reminding") == "true", "Real countdown did not expire"
+
+# ID 1002 disappears after four seconds, so each interval creates a new alert.
+times = []
+for pulse in range(3):
+    for _ in range(50):
+        dump = shell("dumpsys notification --noredact")
+        if re.search(r"NotificationRecord[^\n]*pkg=" + re.escape(PACKAGE) + r"[^\n]*id=1002\b", dump):
+            break
+        time.sleep(0.25)
+    else:
+        raise AssertionError("Repeating time-up notification missing")
+    times.append(time.monotonic())
+    time.sleep(0.3)
+    screenshot("time-up-banner-" + str(pulse + 1))
+    (OUT / ("time-up-systemui-" + str(pulse + 1) + ".txt")).write_text(
+        shell("dumpsys activity service com.android.systemui/.SystemUIService"))
+    assert "awake_expiry_reminders_v1" in dump, "Expiry did not use its independent high-priority channel"
+    for _ in range(30):
+        if not re.search(r"NotificationRecord[^\n]*pkg=" + re.escape(PACKAGE) + r"[^\n]*id=1002\b",
+                         shell("dumpsys notification --noredact")):
+            break
+        time.sleep(0.25)
+    else:
+        raise AssertionError("Expiry notification failed to dismiss")
+assert all(8 <= b - a <= 12 for a, b in zip(times, times[1:])), "Expiry alerts did not repeat at the configured ten-second interval"
+# Stop through the actual notification action during the next reminder.
+shell("cmd statusbar expand-notifications")
+time.sleep(0.5)
+tap_text("停止", exact=True)
+wait_for(lambda: prefs().get("active") == "false", "Notification stop action did not stop expiry reminders")
+time.sleep(11)
+assert not re.search(r"NotificationRecord[^\n]*pkg=" + re.escape(PACKAGE) + r"[^\n]*id=1002\b",
+                     shell("dumpsys notification --noredact")), "Stopped timer continued reminding"
+print("PASS: real one-minute expiry, three transient time-up alerts at ten-second intervals, no add-time notification, stop cancels further reminders.", flush=True)

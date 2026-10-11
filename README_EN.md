@@ -90,7 +90,7 @@ With the default 10 minutes per tap:
 
 Settings also shows the live remaining time at the top, with **“Add time”** and **“Stop timer”** side by side underneath for immediate access.
 
-When time runs out, reminders repeat every 10 seconds by default. Adding time ends the current reminders and starts a new countdown; stopping ends both the timer and reminders. You decide when to switch between studying and resting by tapping.
+When time runs out, an independent high-priority “Time-up reminders” channel posts a brief banner every 10 seconds by default, with a short sound. Adding time ends the current reminders and starts a new countdown; stopping ends both the timer and reminders. You decide when to switch between studying and resting by tapping.
 
 ## Features and settings
 
@@ -121,6 +121,10 @@ Daily countdowns, vibration, sound, and the ongoing notification run locally. **
 ### Why does it open settings by default?
 
 New users need an easy way to find the duration, reminder interval, and notification permission. Opening settings after every launch makes initial setup straightforward. Once familiar with the app, choose notification-only access or use the home screen shortcut.
+
+### Why can I hear reminders but see no banner?
+
+Expiry alerts use the independent “Time-up reminders” notification category. Adding time only shows a bottom message, and the ongoing countdown notification stays silent. Select “Reminder banner settings” to open this category's system settings and allow heads-up and lock-screen notifications. Do Not Disturb, notification cooldown, and device-specific notification policies can still limit repeated banners.
 
 ### Will it remind me with the screen locked?
 

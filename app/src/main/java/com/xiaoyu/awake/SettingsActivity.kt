@@ -271,6 +271,12 @@ class SettingsActivity : AppCompatActivity() {
                 startActivity(Intent(Settings.ACTION_SETTINGS))
             }
         })
+        root.addView(button(tr("到时横幅设置", "Reminder banner settings")) {
+            ReminderHelper.createChannel(this)
+            startActivity(Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                .putExtra(Settings.EXTRA_CHANNEL_ID, ReminderHelper.CHANNEL_ID))
+        })
         root.addView(TextView(this).apply {
             textSize = 12f
             text = tr("常驻通知由本地前台服务维护，无需谷歌服务。若后台被清理，请允许自启动并取消电池限制。",

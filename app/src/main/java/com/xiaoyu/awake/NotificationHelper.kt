@@ -13,6 +13,7 @@ object NotificationHelper {
     const val ID = 1001
 
     fun createChannel(context: Context) {
+        ReminderHelper.createChannel(context)
         if (Build.VERSION.SDK_INT >= 26) {
             val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             // Clean up the old heads-up channel when upgrading.
@@ -33,6 +34,7 @@ object NotificationHelper {
             .addAction(0, if (AppSettings.language(context) == "en") "Stop" else "停止", serviceIntent(context, "STOP_ALL", 2))
             .setContentIntent(settingsIntent(context))
             .setOngoing(true)
+            .setSilent(true)
             .setOnlyAlertOnce(true)
             .build()
 
@@ -43,7 +45,7 @@ object NotificationHelper {
         android.widget.Toast.makeText(context, message, android.widget.Toast.LENGTH_SHORT).show()
     }
 
-    private fun serviceIntent(context: Context, action: String, code: Int): PendingIntent =
+    internal fun serviceIntent(context: Context, action: String, code: Int): PendingIntent =
         PendingIntent.getService(context, code,
             Intent(context, TimerService::class.java).apply { this.action = action },
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
