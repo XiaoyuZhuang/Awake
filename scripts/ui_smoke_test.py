@@ -335,10 +335,11 @@ for pulse in range(3):
     else:
         raise AssertionError("Repeating time-up notification missing")
     times.append(time.monotonic())
-    time.sleep(0.3)
+    time.sleep(0.8)
     screenshot("time-up-banner-" + str(pulse + 1))
-    (OUT / ("time-up-systemui-" + str(pulse + 1) + ".txt")).write_text(
-        shell("dumpsys activity service com.android.systemui/.SystemUIService"))
+    system_ui = shell("dumpsys activity service com.android.systemui/.SystemUIService")
+    (OUT / ("time-up-systemui-" + str(pulse + 1) + ".txt")).write_text(system_ui)
+    assert re.search(re.escape(PACKAGE) + r"\|1002\|[^\n]*section=[^\n]*HeadsUp", system_ui), "Time-up notification did not render as a heads-up banner"
     assert "awake_expiry_reminders_v1" in dump, "Expiry did not use its independent high-priority channel"
     for _ in range(30):
         if not re.search(r"NotificationRecord[^\n]*pkg=" + re.escape(PACKAGE) + r"[^\n]*id=1002\b",
@@ -351,7 +352,7 @@ assert all(8 <= b - a <= 12 for a, b in zip(times, times[1:])), "Expiry alerts d
 # Stop through the actual notification action during the next reminder.
 shell("cmd statusbar expand-notifications")
 time.sleep(0.5)
-tap_text("停止", exact=True)
+tap_text("停止提醒", exact=True)
 wait_for(lambda: prefs().get("active") == "false", "Notification stop action did not stop expiry reminders")
 time.sleep(11)
 assert not re.search(r"NotificationRecord[^\n]*pkg=" + re.escape(PACKAGE) + r"[^\n]*id=1002\b",
