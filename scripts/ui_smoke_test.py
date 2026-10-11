@@ -165,6 +165,53 @@ screenshot("every-launch-settings")
 print("PASS: actual desktop icon, UI-saved entry preference, live Settings task, three exact increments, ongoing notification only and every-launch mode.")
 
 
+
+# Verify live timer and top actions without changing preferences behind the UI.
+def find_visible(predicate):
+    for _ in range(5):
+        matches = [n for n in nodes() if predicate(n)]
+        if matches:
+            return matches
+        shell("input swipe %d %d %d %d 350" % (width // 2, height // 5, width // 2, height * 9 // 10))
+        time.sleep(0.3)
+    raise AssertionError("Expected top timer controls not visible")
+
+def timer_text():
+    return find_visible(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/countdown_value")[0].attrib["text"]
+
+def seconds(text):
+    minutes, sec = map(int, text.split(":"))
+    return minutes * 60 + sec
+
+def assert_same_row(first, second):
+    visible = nodes()
+    left = next(n for n in visible if first(n))
+    right = next(n for n in visible if second(n))
+    a = list(map(int, re.findall(r"\d+", left.attrib["bounds"])))
+    b = list(map(int, re.findall(r"\d+", right.attrib["bounds"])))
+    assert abs(a[1] - b[1]) <= 2 and a[2] <= b[0], "Controls are not side by side"
+
+
+find_visible(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/add_time")
+assert_same_row(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/add_time",
+                lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/stop_timer")
+assert_same_row(lambda n: n.attrib.get("text") == "震动", lambda n: n.attrib.get("text") == "声音")
+before = seconds(timer_text())
+time.sleep(2)
+after = seconds(timer_text())
+assert after < before and before - after <= 15, "Settings timer did not count down live"
+expected = max(0, (int(prefs()["deadline"]) - int(time.time() * 1000) + 999) // 1000)
+assert abs(after - expected) <= 5, "Displayed countdown differs from service deadline"
+tap_text("停止倒计时", exact=True)
+wait_for(lambda: prefs().get("active") == "false", "Top stop button did not stop the timer")
+assert timer_text() == "00:00", "Stopped timer display was not reset"
+screenshot("compact-stopped")
+tap_text("立即增加", exact=True)
+wait_for(lambda: prefs().get("active") == "true", "Top add button did not restart the timer")
+assert 45 <= seconds(timer_text()) <= 60, "Top add did not use the configured one-minute increment"
+screenshot("compact-live-timer")
+print("PASS: paired top actions and vibration/sound, live countdown, stop/reset and add/restart.", flush=True)
+
 # Create the pinned shortcut through Settings, then tap its real desktop icon.
 for _ in range(5):
     if any("添加桌面加时快捷方式" in n.attrib.get("text", "") for n in nodes()):
@@ -204,3 +251,17 @@ assert 177000 <= delta <= 183000, "Shortcut did not add exactly three increments
 assert prefs("awake_settings")["settings_entry"] == "every_launch"
 screenshot("shortcut-headless-with-animations")
 print("PASS: UI-created pinned shortcut, three actual desktop taps, headless even in every-launch mode with animations enabled.", flush=True)
+
+# Core timer and native ongoing notification must work without Google Play services.
+for package in ("com.google.android.gms", "com.android.vending"):
+    if ("package:" + package) in shell("pm list packages " + package).splitlines():
+        shell("pm disable-user --user 0 " + package)
+home_launch()
+wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(), "Settings failed without Google services")
+find_visible(lambda n: n.attrib.get("resource-id") == PACKAGE + ":id/add_time")
+no_google_deadline = int(prefs()["deadline"])
+tap_text("立即增加", exact=True)
+wait_for(lambda: int(prefs()["deadline"]) - no_google_deadline >= 59000, "Adding time failed without Google services")
+assert "awake_timer" in shell("dumpsys notification --noredact"), "Local ongoing notification failed without Google services"
+screenshot("settings-without-google-services")
+print("PASS: Google Play services disabled, local add-time service and ongoing notification work.", flush=True)

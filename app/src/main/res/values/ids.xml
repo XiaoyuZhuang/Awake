@@ -1,0 +1,6 @@
+<resources>
+    <item name="countdown_value" type="id" />
+    <item name="timer_state" type="id" />
+    <item name="add_time" type="id" />
+    <item name="stop_timer" type="id" />
+</resources>
