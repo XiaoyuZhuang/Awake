@@ -186,6 +186,15 @@ for animation in ("window_animation_scale", "transition_animation_scale", "anima
 for click in range(3):
     shell("input keyevent HOME")
     time.sleep(0.7)
+    # Pixel Launcher places a newly pinned item on another workspace page.
+    found = False
+    for page in range(5):
+        if any(n.attrib.get("text") == "Awake 加时" for n in nodes()):
+            found = True
+            break
+        shell("input swipe %d %d %d %d 350" % (width * 9 // 10, height // 2, width // 10, height // 2))
+        time.sleep(0.7)
+    assert found, "Pinned shortcut not visible on any home screen page"
     tap_text("Awake 加时", exact=True)
     wait_for(lambda: int(prefs()["deadline"]) - shortcut_deadline >= (click + 1) * 59000,
              "Pinned shortcut did not add time")
