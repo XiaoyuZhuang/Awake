@@ -42,7 +42,10 @@ def screenshot(name):
 
 def nodes():
     try:
-        shell("uiautomator dump /sdcard/window.xml")
+        shell("rm -f /sdcard/window.xml")
+        result = shell("uiautomator dump /sdcard/window.xml")
+        if "dumped to:" not in result:
+            return []
         return list(ET.fromstring(shell("cat /sdcard/window.xml")).iter("node"))
     except (subprocess.CalledProcessError, ET.ParseError):
         return []
@@ -144,12 +147,16 @@ shell("cmd statusbar expand-notifications")
 time.sleep(0.7)
 # Tap the countdown body, not the app-name header which expands the notification.
 clicked = False
-for node in nodes():
-    if node.attrib.get("resource-id") == "android:id/text" and re.fullmatch(r"[0-9]+:[0-9]{2}", node.attrib.get("text", "")):
-        bounds = list(map(int, re.findall(r"\d+", node.attrib["bounds"])))
-        shell("input tap %d %d" % ((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2))
-        clicked = True
+for attempt in range(12):
+    for node in nodes():
+        if node.attrib.get("resource-id") == "android:id/text" and re.fullmatch(r"[0-9]+:[0-9]{2}", node.attrib.get("text", "")):
+            bounds = list(map(int, re.findall(r"\d+", node.attrib["bounds"])))
+            shell("input tap %d %d" % ((bounds[0] + bounds[2]) // 2, (bounds[1] + bounds[3]) // 2))
+            clicked = True
+            break
+    if clicked:
         break
+    time.sleep(0.3)
 assert clicked, "Countdown notification body missing"
 wait_for(lambda: PACKAGE + "/.SettingsActivity" in resumed(), "Notification did not open settings")
 screenshot("settings-from-notification")
