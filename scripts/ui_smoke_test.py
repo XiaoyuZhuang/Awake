@@ -74,12 +74,17 @@ size = list(map(int, re.findall(r"(\d+)x(\d+)", shell("wm size"))[-1]))
 width, height = size
 
 def home_launch():
-    shell("input keyevent HOME")
-    time.sleep(2)
-    # Open the actual launcher app drawer, then tap Awake rather than using am start.
-    shell("input swipe %d %d %d %d 300" % (width // 2, height * 9 // 10, width // 2, height * 3 // 10))
-    time.sleep(0.7)
-    tap_text("Awake", exact=True)
+    # Cold-boot launchers can ignore the first drawer gesture while loading.
+    for attempt in range(6):
+        shell("input keyevent HOME")
+        time.sleep(2)
+        # Swipe on empty workspace, above the Google search widget/hotseat.
+        shell("input swipe %d %d %d %d 350" % (width // 2, height * 7 // 10, width // 2, height * 3 // 10))
+        time.sleep(0.7)
+        if any(n.attrib.get("text") == "Awake" for n in nodes()):
+            tap_text("Awake", exact=True)
+            return
+    raise AssertionError("Awake not available in launcher app drawer")
 
 adb("install", "-r", "dist/Awake-debug.apk")
 shell("pm grant " + PACKAGE + " android.permission.POST_NOTIFICATIONS")
