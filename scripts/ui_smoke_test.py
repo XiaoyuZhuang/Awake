@@ -28,13 +28,19 @@ def resumed():
                      if re.search(r"(?:mResumedActivity|topResumedActivity)\s*[:=]", line))
 
 def prefs(name="awake_runtime"):
-    result = subprocess.run(["adb", "shell", "run-as", PACKAGE, "cat", "shared_prefs/" + name + ".xml"],
-                            text=True, capture_output=True)
-    if result.returncode != 0:
-        return {}
-    xml = result.stdout
-    return {node.attrib["name"]: node.attrib.get("value", node.text)
-            for node in ET.fromstring(xml)}
+    # The service persists runtime state every tick. A shell read can race the
+    # atomic preference-file replacement, so retry an empty/incomplete snapshot.
+    for _ in range(8):
+        result = subprocess.run(["adb", "shell", "run-as", PACKAGE, "cat", "shared_prefs/" + name + ".xml"],
+                                text=True, capture_output=True)
+        if result.returncode == 0 and result.stdout.strip():
+            try:
+                return {node.attrib["name"]: node.attrib.get("value", node.text)
+                        for node in ET.fromstring(result.stdout)}
+            except ET.ParseError:
+                pass
+        time.sleep(0.05)
+    return {}
 
 def screenshot(name):
     with (OUT / (name + ".png")).open("wb") as output:
