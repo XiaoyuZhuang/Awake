@@ -41,12 +41,13 @@ def screenshot(name):
         subprocess.run(["adb", "exec-out", "screencap", "-p"], stdout=output, check=True)
 
 def nodes():
+    # Read the live accessibility tree without waiting for an idle notification shade.
+    # The helper runs in its own package, so snapshots never restart Awake.
     try:
-        shell("rm -f /sdcard/window.xml")
-        result = shell("uiautomator dump /sdcard/window.xml")
-        if "dumped to:" not in result:
-            return []
-        return list(ET.fromstring(shell("cat /sdcard/window.xml")).iter("node"))
+        shell("am instrument -w com.xiaoyu.awake.uitest/.SnapshotInstrumentation")
+        xml = shell("run-as com.xiaoyu.awake.uitest cat cache/window.xml")
+        (OUT / "latest-window.xml").write_text(xml)
+        return list(ET.fromstring(xml).iter("node"))
     except (subprocess.CalledProcessError, ET.ParseError):
         return []
 
@@ -66,7 +67,8 @@ def tap_text(text, exact=False):
 def capture_failure(error_type, error, traceback):
     screenshot("failure")
     try:
-        (OUT / "failure.xml").write_text(shell("cat /sdcard/window.xml"))
+        if (OUT / "latest-window.xml").exists():
+            (OUT / "failure.xml").write_text((OUT / "latest-window.xml").read_text())
         (OUT / "failure-logcat.txt").write_text(shell("logcat -d -t 400"))
     finally:
         sys.__excepthook__(error_type, error, traceback)
@@ -90,6 +92,7 @@ def home_launch():
     raise AssertionError("Awake not available in launcher app drawer")
 
 adb("install", "-r", "dist/Awake-debug.apk")
+adb("install", "-r", "ui-test-helper/build/outputs/apk/debug/ui-test-helper-debug.apk")
 shell("pm grant " + PACKAGE + " android.permission.POST_NOTIFICATIONS")
 time.sleep(5)  # Package install can finish before the cold-boot launcher is ready.
 home_launch()
